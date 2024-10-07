@@ -7,6 +7,32 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool isStudent = true; // Default selected tab
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  void _login() {
+    // Hardcoded email and password for the tutor
+    const String tutorEmail = 'islamtamjid276@gmail.com';
+    const String tutorPassword = 'tamjid123';
+
+    // Get the entered values
+    String enteredEmail = emailController.text;
+    String enteredPassword = passwordController.text;
+
+    // Check if the entered email and password match the tutor's credentials
+    if (enteredEmail == tutorEmail && enteredPassword == tutorPassword) {
+      // Navigate to Tutor Dashboard Page
+      Navigator.pushReplacementNamed(context, '/tutor_home'); // Correct route name
+    } else {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invalid email or password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +45,10 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              SizedBox(height: MediaQuery.of(context).size.height * 0.1), // Top padding
+              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
               Center(
                 child: Image.asset(
-                  'assets/tutor_image.png', // Replace with your image path
+                  'assets/tutor_image.png',
                   height: 150,
                 ),
               ),
@@ -84,6 +110,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: 20),
               TextField(
+                controller: emailController,
                 decoration: InputDecoration(
                   labelText: 'Enter Email Address',
                   border: OutlineInputBorder(
@@ -94,6 +121,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: 10),
               TextField(
+                controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Enter Password',
@@ -114,9 +142,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  // Handle login
-                },
+                onPressed: _login,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.amber,
                   padding: EdgeInsets.symmetric(vertical: 15),
@@ -136,7 +162,6 @@ class _LoginPageState extends State<LoginPage> {
                   Text("Don't have an account? "),
                   GestureDetector(
                     onTap: () {
-                      // Navigate to registration page
                       Navigator.pushNamed(context, '/register');
                     },
                     child: Text(
@@ -149,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.05), // Bottom padding
+              SizedBox(height: MediaQuery.of(context).size.height * 0.05),
             ],
           ),
         ),
