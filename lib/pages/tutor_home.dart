@@ -52,12 +52,34 @@ class _TutorHomePageState extends State<TutorHomePage> {
               },
             ),
             ListTile(
+              leading: Icon(Icons.timeline),
+              title: Text('Edit Time Slots'),
+              onTap: () {
+                // Log out action here
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Profile'),
+              onTap: () {
+                // Log out action here
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.person_3_rounded),
+              title: Text('Current Students'),
+              onTap: () {
+                // Log out action here
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.logout),
               title: Text('Log Out'),
               onTap: () {
                 // Log out action here
               },
             ),
+
           ],
         ),
       ),
