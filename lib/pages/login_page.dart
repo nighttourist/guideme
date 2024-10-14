@@ -11,16 +11,21 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   void _login() {
-    // Hardcoded email and password for the tutor
-    const String tutorEmail = 'islamtamjid276@gmail.com';
-    const String tutorPassword = 'tamjid123';
+    // Hardcoded email and password for tutor and student
+    const String tutorEmail = 'tamjid';
+    const String tutorPassword = '123';
+    const String studentEmail = 'tamjid'; // Dummy student email
+    const String studentPassword = '12345'; // Dummy student password
 
     // Get the entered values
     String enteredEmail = emailController.text;
     String enteredPassword = passwordController.text;
 
-    // Check if the entered email and password match the tutor's credentials
-    if (enteredEmail == tutorEmail && enteredPassword == tutorPassword) {
+    // Check login credentials based on the selected role
+    if (isStudent && enteredEmail == studentEmail && enteredPassword == studentPassword) {
+      // Navigate to Student Dashboard Page
+      Navigator.pushReplacementNamed(context, '/student'); // Correct route name
+    } else if (!isStudent && enteredEmail == tutorEmail && enteredPassword == tutorPassword) {
       // Navigate to Tutor Dashboard Page
       Navigator.pushReplacementNamed(context, '/tutor_home'); // Correct route name
     } else {
