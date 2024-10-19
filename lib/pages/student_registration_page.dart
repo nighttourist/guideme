@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StudentRegistrationPage extends StatefulWidget {
   @override
@@ -11,6 +13,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
   final TextEditingController studentIdController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController gradeController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController(); // Password field
   DateTime? selectedDate;
 
   @override
@@ -52,6 +55,8 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
                 SizedBox(height: 10),
                 _buildTextField(gradeController, 'Enter Grade'),
                 SizedBox(height: 10),
+                _buildTextField(passwordController, 'Enter Password', isPassword: true), // Password field
+                SizedBox(height: 10),
                 _buildDateField(context),
                 SizedBox(height: 20),
                 ElevatedButton(
@@ -61,10 +66,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onPressed: () {
-                    // Handle student registration logic
-                    _handleRegistration();
-                  },
+                  onPressed: _handleRegistration,
                   child: Text(
                     "Register",
                     style: TextStyle(fontSize: 18),
@@ -78,9 +80,10 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label) {
+  Widget _buildTextField(TextEditingController controller, String label, {bool isPassword = false}) {
     return TextField(
       controller: controller,
+      obscureText: isPassword,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
@@ -97,9 +100,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
 
   Widget _buildDateField(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        _selectDate(context);
-      },
+      onTap: () => _selectDate(context),
       child: AbsorbPointer(
         child: TextField(
           decoration: InputDecoration(
@@ -107,10 +108,6 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Colors.blueAccent),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.blue),
             ),
             hintText: selectedDate != null
                 ? "${selectedDate!.toLocal()}".split(' ')[0]
@@ -135,16 +132,51 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
     }
   }
 
-  void _handleRegistration() {
-    // Handle registration logic here
-    // Access the values using the controllers
-    String name = nameController.text;
-    String email = emailController.text;
-    String studentId = studentIdController.text;
-    String address = addressController.text;
-    String grade = gradeController.text;
+  void _handleRegistration() async {
+    try {
+      // Register the student with Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
 
-    // Display or store the information as needed
-    print("Registered: $name, $email, $studentId, $address, $grade, $selectedDate");
+      // Store student information in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).set({
+        'name': nameController.text,
+        'email': emailController.text,
+        'studentId': studentIdController.text,
+        'address': addressController.text,
+        'grade': gradeController.text,
+        'dateOfBirth': selectedDate?.toIso8601String(), // Save date as string
+        'role': 'student',  // Student role for identification
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Registration Successful!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Optionally, navigate to the student dashboard or login
+      Navigator.pushReplacementNamed(context, '/student_dashboard');
+
+    } on FirebaseAuthException catch (e) {
+      // Handle Firebase registration errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: ${e.message}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      // Handle any other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("An unexpected error occurred."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

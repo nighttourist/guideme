@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class TutorRegistrationPage extends StatefulWidget {
   @override
@@ -6,167 +8,133 @@ class TutorRegistrationPage extends StatefulWidget {
 }
 
 class _TutorRegistrationPageState extends State<TutorRegistrationPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController ageController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
-  final TextEditingController qualificationController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  DateTime? selectedDate;
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController subjectController = TextEditingController();
+  final TextEditingController bioController = TextEditingController();
+
+  Future<void> _registerTutor() async {
+    try {
+      // Create a new user with email and password
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+
+      // Save tutor information to Firestore
+      await _firestore.collection('users').doc(userCredential.user?.uid).set({
+        'name': nameController.text,
+        'email': emailController.text,
+        'phone': phoneController.text,
+        'subject': subjectController.text,
+        'bio': bioController.text,
+        'role': 'tutor'  // Add role as tutor
+      });
+
+      // Navigate to tutor home page after registration
+      Navigator.pushReplacementNamed(context, '/tutor_home');
+    } on FirebaseAuthException catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Tutor Registration"),
-        centerTitle: true,
+        title: Text('Tutor Registration'),
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  "Register as a Tutor",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
-                  textAlign: TextAlign.center,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
                 ),
-                SizedBox(height: 20),
-                _buildTextField(nameController, 'Enter Name'),
-                SizedBox(height: 10),
-                _buildTextField(emailController, 'Enter Email Address'),
-                SizedBox(height: 10),
-                _buildTextField(ageController, 'Enter Age'),
-                SizedBox(height: 10),
-                _buildTextField(locationController, 'Enter Location'),
-                SizedBox(height: 10),
-                _buildTextField(qualificationController, 'Enter Qualification'),
-                SizedBox(height: 10),
-                _buildPasswordField(passwordController, 'Enter Password'),
-                SizedBox(height: 10),
-                _buildDateField(context),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {
-                    // Handle tutor registration logic
-                    _handleRegistration();
-                  },
-                  child: Text(
-                    "Register",
-                    style: TextStyle(fontSize: 18),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: subjectController,
+                decoration: InputDecoration(
+                  labelText: 'Subject Specialization',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.book),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: bioController,
+                decoration: InputDecoration(
+                  labelText: 'Short Bio',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.info),
+                ),
+                maxLines: 3,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _registerTutor,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-              ],
-            ),
+                child: Text(
+                  'Register',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blueAccent),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blue),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      obscureText: true,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blueAccent),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.blue),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateField(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        _selectDate(context);
-      },
-      child: AbsorbPointer(
-        child: TextField(
-          decoration: InputDecoration(
-            labelText: 'Date of Birth',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.blueAccent),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.blue),
-            ),
-            hintText: selectedDate != null
-                ? "${selectedDate!.toLocal()}".split(' ')[0]
-                : 'Select Date',
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
-  }
-
-  void _handleRegistration() {
-    // Handle registration logic here
-    // Access the values using the controllers
-    String name = nameController.text;
-    String email = emailController.text;
-    String age = ageController.text;
-    String location = locationController.text;
-    String qualification = qualificationController.text;
-    String password = passwordController.text;
-
-    // Display or store the information as needed
-    print("Registered: $name, $email, $age, $location, $qualification, $password, $selectedDate");
   }
 }

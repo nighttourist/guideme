@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -10,29 +12,50 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  void _login() {
-    // Hardcoded email and password for tutor and student
-    const String tutorEmail = 'tamjid';
-    const String tutorPassword = '123';
-    const String studentEmail = 'tamjid'; // Dummy student email
-    const String studentPassword = '12345'; // Dummy student password
+  void _login() async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
 
-    // Get the entered values
-    String enteredEmail = emailController.text;
-    String enteredPassword = passwordController.text;
+      // Fetch user details from Firestore
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .get();
 
-    // Check login credentials based on the selected role
-    if (isStudent && enteredEmail == studentEmail && enteredPassword == studentPassword) {
-      // Navigate to Student Dashboard Page
-      Navigator.pushReplacementNamed(context, '/student'); // Correct route name
-    } else if (!isStudent && enteredEmail == tutorEmail && enteredPassword == tutorPassword) {
-      // Navigate to Tutor Dashboard Page
-      Navigator.pushReplacementNamed(context, '/tutor_home'); // Correct route name
-    } else {
+      if (userDoc.exists) {
+        String role = userDoc['role']; // Get the user's role from Firestore
+
+        if (isStudent && role == 'student') {
+          // Navigate to student page
+          Navigator.pushReplacementNamed(context, '/student');
+        } else if (!isStudent && role == 'tutor') {
+          // Navigate to tutor page
+          Navigator.pushReplacementNamed(context, '/tutor_home');
+        } else {
+          // Show error message if role mismatch occurs
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Incorrect role selected.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No user found in Firestore.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Invalid email or password'),
+          content: Text('Error: ${e.message}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -167,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text("Don't have an account? "),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(context, '/register');
+                      Navigator.pushNamed(context, '/register'); // Navigate to registration page
                     },
                     child: Text(
                       'Register here',

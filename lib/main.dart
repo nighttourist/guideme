@@ -11,10 +11,12 @@ import 'pages/class_history.dart';
 import 'pages/rating_review.dart';
 import 'pages/save_tutor.dart';
 import 'pages/search_tutor.dart';
-
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(TutorFinderApp());
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+void main() async{
+WidgetsFlutterBinding.ensureInitialized();  // Ensure binding
+await Firebase.initializeApp();
+runApp(TutorFinderApp());
 }
 
 class TutorFinderApp extends StatelessWidget {
