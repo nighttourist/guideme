@@ -17,6 +17,7 @@ class _TutorRegistrationPageState extends State<TutorRegistrationPage> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController subjectController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
+  final TextEditingController locationController = TextEditingController(); // New field for location
 
   Future<void> _registerTutor() async {
     try {
@@ -33,6 +34,7 @@ class _TutorRegistrationPageState extends State<TutorRegistrationPage> {
         'phone': phoneController.text,
         'subject': subjectController.text,
         'bio': bioController.text,
+        'location': locationController.text, // Save location to Firestore
         'role': 'tutor'  // Add role as tutor
       });
 
@@ -104,6 +106,15 @@ class _TutorRegistrationPageState extends State<TutorRegistrationPage> {
                   labelText: 'Subject Specialization',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.book),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: locationController,
+                decoration: InputDecoration(
+                  labelText: 'Location',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
                 ),
               ),
               SizedBox(height: 10),

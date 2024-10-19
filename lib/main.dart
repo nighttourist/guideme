@@ -11,6 +11,7 @@ import 'pages/class_history.dart';
 import 'pages/rating_review.dart';
 import 'pages/save_tutor.dart';
 import 'pages/search_tutor.dart';
+import 'pages/student_profile.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 void main() async{
@@ -37,7 +38,8 @@ class TutorFinderApp extends StatelessWidget {
         '/saved_tutors': (context) => SavedTutorsPage(),
         '/class_history': (context) => ClassHistoryPage(),
         '/chat': (context) => ChatPage(),
-        '/ratings_reviews': (context) => RatingsReviewsPage(),// Tutor Registration
+        '/ratings_reviews': (context) => RatingsReviewsPage(),
+        '/student_profile': (context) => StudentProfilePage(),// Tutor Registration
       },
     );
   }

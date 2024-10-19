@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class StudentHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Tutor Finder - Student Home'),
         actions: [
           IconButton(
             icon: Icon(Icons.logout),
-            onPressed: () {
-              // Logout functionality here
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacementNamed(context, '/'); // Redirect to login page after logout
             },
           ),
         ],
@@ -22,11 +27,61 @@ class StudentHomePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Welcome message
-              Text(
-                'Welcome, [Student Name]',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user?.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  }
+
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return Text('No user data found');
+                  }
+
+                  // Fetch student name from Firestore
+                  String studentName = snapshot.data!['name'] ?? 'Student'; // Adjust field name as necessary
+
+                  return Text(
+                    'Welcome, $studentName',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  );
+                },
               ),
               SizedBox(height: 30),
+
+              // Card: Profile
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/student_profile', arguments: user?.uid);
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, size: 40, color: Colors.blueAccent),
+                        SizedBox(width: 20),
+                        Text(
+                          'View Profile',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
 
               // Card: Search for Tutors
               Card(
@@ -36,7 +91,7 @@ class StudentHomePage extends StatelessWidget {
                 ),
                 child: InkWell(
                   onTap: () {
-                    Navigator.pushNamed(context, '/tutor_search');
+                    Navigator.pushNamed(context, '/tutor_search'); // Update with your route name
                   },
                   child: Padding(
                     padding: EdgeInsets.all(16.0),

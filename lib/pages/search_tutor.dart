@@ -1,6 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class TutorSearchPage extends StatelessWidget {
+class TutorSearchPage extends StatefulWidget {
+  @override
+  _TutorSearchPageState createState() => _TutorSearchPageState();
+}
+
+class _TutorSearchPageState extends State<TutorSearchPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Make these variables nullable (String?)
+  String? selectedSubject;
+  String? selectedLocation;
+  List<Map<String, dynamic>> tutors = [];
+
+  // Fetch all tutors from Firestore
+  Future<void> _fetchTutors() async {
+    QuerySnapshot snapshot = await _firestore.collection('users').where('role', isEqualTo: 'tutor').get();
+    setState(() {
+      tutors = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    });
+  }
+
+  // Filter tutors by subject and location
+  List<Map<String, dynamic>> _filteredTutors() {
+    return tutors.where((tutor) {
+      final matchesSubject = selectedSubject == null || tutor['subject'] == selectedSubject;
+      final matchesLocation = selectedLocation == null || tutor['location'] == selectedLocation;
+      return matchesSubject && matchesLocation;
+    }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTutors();  // Fetch tutors when the page is loaded
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +61,9 @@ class TutorSearchPage extends StatelessWidget {
               ))
                   .toList(),
               onChanged: (value) {
-                // Handle subject selection
+                setState(() {
+                  selectedSubject = value;  // No more error because selectedSubject is now nullable
+                });
               },
             ),
             SizedBox(height: 10),
@@ -41,14 +79,16 @@ class TutorSearchPage extends StatelessWidget {
               ))
                   .toList(),
               onChanged: (value) {
-                // Handle location selection
+                setState(() {
+                  selectedLocation = value;  // No more error because selectedLocation is now nullable
+                });
               },
             ),
             SizedBox(height: 20),
             // Search button
             ElevatedButton.icon(
               onPressed: () {
-                // Perform search functionality
+                setState(() {});  // Rebuild the UI to apply filters
               },
               icon: Icon(Icons.search),
               label: Text('Search'),
@@ -58,38 +98,12 @@ class TutorSearchPage extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20),
-            // Sorting Dropdown
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Results:',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                DropdownButton<String>(
-                  hint: Text('Sort By'),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'rating',
-                      child: Text('Highest Rating'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'distance',
-                      child: Text('Closest Distance'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    // Handle sorting
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
             // Display list of tutors
             Expanded(
               child: ListView.builder(
-                itemCount: 10, // Replace with the actual number of tutors
+                itemCount: _filteredTutors().length,
                 itemBuilder: (context, index) {
+                  final tutor = _filteredTutors()[index];
                   return Card(
                     elevation: 3,
                     margin: EdgeInsets.symmetric(vertical: 8),
@@ -97,16 +111,17 @@ class TutorSearchPage extends StatelessWidget {
                       leading: CircleAvatar(
                         backgroundColor: Colors.blue,
                         child: Text(
-                          'T$index',
+                          tutor['name'][0],
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      title: Text('Tutor Name $index'),
+                      title: Text(tutor['name']),
                       subtitle: Text(
-                          'Subjects: Math, Science\nRating: 4.5 ⭐'),
+                        'Subjects: ${tutor['subject']}\nLocation: ${tutor['location']}\nRating: 4.5 ⭐',
+                      ),
                       trailing: Icon(Icons.arrow_forward_ios),
                       onTap: () {
-                        // Navigate to tutor details page (to be created)
+                        // Navigate to tutor details page (to be implemented)
                       },
                     ),
                   );
