@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'tutor_slot_page.dart'; // Make sure this is the correct import path
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TutorHomePage extends StatefulWidget {
   @override
@@ -7,8 +10,8 @@ class TutorHomePage extends StatefulWidget {
 
 class _TutorHomePageState extends State<TutorHomePage> {
   int? selectedCardIndex;
+  String? tutorUid;
 
-  // Define a list of card colors
   final List<Color> cardColors = [
     Colors.blueAccent,
     Colors.pinkAccent,
@@ -20,6 +23,40 @@ class _TutorHomePageState extends State<TutorHomePage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _fetchTutorUid();
+  }
+
+  Future<void> _fetchTutorUid() async {
+    User? currentUser = FirebaseAuth.instance.currentUser; // Get the current user
+
+    // Check if the current user is logged in
+    if (currentUser != null) {
+      String currentUserId = currentUser.uid; // Get the UID of the current user
+
+      try {
+        DocumentSnapshot snapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .get();
+
+        // Check if the document exists and if the user is a tutor
+        if (snapshot.exists && snapshot['role'] == 'tutor') {
+          setState(() {
+            tutorUid = snapshot.id; // Save the UID of the tutor
+          });
+        } else {
+          print('User is not a tutor');
+        }
+      } catch (e) {
+        print('Error fetching tutor UID: $e');
+      }
+    } else {
+      print('No user is currently logged in.');
+    }
+  }
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -28,7 +65,6 @@ class _TutorHomePageState extends State<TutorHomePage> {
           IconButton(
             icon: Icon(Icons.notifications),
             onPressed: () {
-              // Navigate to notifications page or show a dialog
               _showNotificationsDialog();
             },
           ),
@@ -42,7 +78,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome, Tamjid!',
+                'Welcome, Tutor!',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -51,7 +87,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
               const SizedBox(height: 20),
               Expanded(
                 child: GridView.count(
-                  crossAxisCount: 3, // 3 cards in each row
+                  crossAxisCount: 3,
                   crossAxisSpacing: 16.0,
                   mainAxisSpacing: 16.0,
                   children: List.generate(7, (index) {
@@ -78,7 +114,6 @@ class _TutorHomePageState extends State<TutorHomePage> {
     );
   }
 
-  // Build the Drawer Widget
   Widget _buildDrawer() {
     return Drawer(
       child: ListView(
@@ -115,7 +150,6 @@ class _TutorHomePageState extends State<TutorHomePage> {
     );
   }
 
-  // Build the Bottom Navigation Bar
   Widget _buildBottomNavigationBar() {
     return Container(
       color: Colors.lightBlue[100],
@@ -138,10 +172,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/search'
-                );
+                Navigator.pushNamed(context, '/search');
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -153,13 +184,18 @@ class _TutorHomePageState extends State<TutorHomePage> {
             ),
             GestureDetector(
               onTap: () {
-                // Navigate to View Slot
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TutorSlotPage(tutorUid: tutorUid ?? ''), // Pass UID to the slot page
+                  ),
+                );
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.calendar_view_day, size: 30),
-                  Text('View Slot', style: TextStyle(fontSize: 12)),
+                  Text('Manage Slots', style: TextStyle(fontSize: 12)),
                 ],
               ),
             ),
@@ -169,7 +205,6 @@ class _TutorHomePageState extends State<TutorHomePage> {
     );
   }
 
-  // Show Notifications Dialog
   void _showNotificationsDialog() {
     showDialog(
       context: context,
@@ -200,6 +235,12 @@ class _TutorHomePageState extends State<TutorHomePage> {
         break;
       case 2:
       // Navigate to View & Change Slots
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TutorSlotPage(tutorUid: tutorUid ?? ''),
+          ),
+        );
         break;
       case 3:
       // Navigate to Students
@@ -218,7 +259,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
 
   Color _getCardColor(int index) {
     if (selectedCardIndex == index) {
-      return Colors.blueGrey; // Highlight selected card
+      return Colors.blueGrey;
     }
     return cardColors[index % cardColors.length];
   }
@@ -226,21 +267,21 @@ class _TutorHomePageState extends State<TutorHomePage> {
   IconData _getCardIcon(int index) {
     switch (index) {
       case 0:
-        return Icons.calendar_today;
+        return Icons.schedule;
       case 1:
-        return Icons.person_add;
+        return Icons.request_page;
       case 2:
-        return Icons.edit;
+        return Icons.calendar_view_day;
       case 3:
-        return Icons.people;
+        return Icons.person;
       case 4:
         return Icons.history;
       case 5:
         return Icons.notifications;
       case 6:
-        return Icons.person;
+        return Icons.account_circle;
       default:
-        return Icons.help;
+        return Icons.info;
     }
   }
 
@@ -251,7 +292,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
       case 1:
         return 'Requests';
       case 2:
-        return 'View & Change Slots';
+        return 'Slots';
       case 3:
         return 'Students';
       case 4:
@@ -264,8 +305,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
         return 'Unknown';
     }
   }
-
-  Widget _buildCard({
+Widget _buildCard({
     required int index,
     required Color color,
     required IconData icon,
@@ -306,5 +346,3 @@ class _TutorHomePageState extends State<TutorHomePage> {
     );
   }
 }
-
-

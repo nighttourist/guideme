@@ -10,7 +10,7 @@ class StudentRegistrationPage extends StatefulWidget {
 class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController studentIdController = TextEditingController();
+  final TextEditingController ageController = TextEditingController(); // Age field
   final TextEditingController addressController = TextEditingController();
   final TextEditingController gradeController = TextEditingController();
   final TextEditingController passwordController = TextEditingController(); // Password field
@@ -49,7 +49,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
                 SizedBox(height: 10),
                 _buildTextField(emailController, 'Enter Email Address'),
                 SizedBox(height: 10),
-                _buildTextField(studentIdController, 'Enter Age'),
+                _buildTextField(ageController, 'Enter Age'), // Age field
                 SizedBox(height: 10),
                 _buildTextField(addressController, 'Enter Address'),
                 SizedBox(height: 10),
@@ -84,6 +84,7 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
     return TextField(
       controller: controller,
       obscureText: isPassword,
+      keyboardType: isPassword ? TextInputType.visiblePassword : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
@@ -133,20 +134,37 @@ class _StudentRegistrationPageState extends State<StudentRegistrationPage> {
   }
 
   void _handleRegistration() async {
+    if (emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        nameController.text.isEmpty ||
+        ageController.text.isEmpty || // Check for age
+        addressController.text.isEmpty ||
+        gradeController.text.isEmpty ||
+        selectedDate == null) {
+      // Display error if fields are empty
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Please fill in all fields."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
       // Register the student with Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text,
-        password: passwordController.text,
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
 
       // Store student information in Firestore
       await FirebaseFirestore.instance.collection('users').doc(userCredential.user?.uid).set({
-        'name': nameController.text,
-        'email': emailController.text,
-        'studentId': studentIdController.text,
-        'address': addressController.text,
-        'grade': gradeController.text,
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'age': ageController.text.trim(), // Save age instead of studentId
+        'address': addressController.text.trim(),
+        'grade': gradeController.text.trim(),
         'dateOfBirth': selectedDate?.toIso8601String(), // Save date as string
         'role': 'student',  // Student role for identification
       });
