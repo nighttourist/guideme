@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'batch_select_page.dart';
 
 class TutorSearchPage extends StatefulWidget {
   @override
@@ -8,21 +10,35 @@ class TutorSearchPage extends StatefulWidget {
 
 class _TutorSearchPageState extends State<TutorSearchPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Make these variables nullable (String?)
   String? selectedSubject;
   String? selectedLocation;
   List<Map<String, dynamic>> tutors = [];
+  String? studentName; // To store the current user's name
 
-  // Fetch all tutors from Firestore
+  // Fetch tutors from Firestore
   Future<void> _fetchTutors() async {
     QuerySnapshot snapshot = await _firestore.collection('users').where('role', isEqualTo: 'tutor').get();
     setState(() {
-      tutors = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      tutors = snapshot.docs.map((doc) {
+        final tutorData = doc.data() as Map<String, dynamic>;
+        tutorData['uid'] = doc.id; // Add the document ID as 'uid'
+        return tutorData;
+      }).toList();
     });
   }
 
-  // Filter tutors by subject and location
+  // Fetch current user's name from Firestore
+  Future<void> _fetchCurrentUser() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+      setState(() {
+        studentName = userDoc['name']; // Assuming 'name' field stores the user's name
+      });
+    }
+  }
+
+  // Filter tutors based on selected subject and location
   List<Map<String, dynamic>> _filteredTutors() {
     return tutors.where((tutor) {
       final matchesSubject = selectedSubject == null || tutor['subject'] == selectedSubject;
@@ -34,7 +50,8 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
   @override
   void initState() {
     super.initState();
-    _fetchTutors();  // Fetch tutors when the page is loaded
+    _fetchTutors();
+    _fetchCurrentUser(); // Fetch current user's name
   }
 
   @override
@@ -48,7 +65,6 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search fields for subject and location
             DropdownButtonFormField<String>(
               decoration: InputDecoration(
                 labelText: 'Select Subject',
@@ -62,7 +78,7 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  selectedSubject = value;  // No more error because selectedSubject is now nullable
+                  selectedSubject = value;
                 });
               },
             ),
@@ -80,15 +96,14 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                   .toList(),
               onChanged: (value) {
                 setState(() {
-                  selectedLocation = value;  // No more error because selectedLocation is now nullable
+                  selectedLocation = value;
                 });
               },
             ),
             SizedBox(height: 20),
-            // Search button
             ElevatedButton.icon(
               onPressed: () {
-                setState(() {});  // Rebuild the UI to apply filters
+                setState(() {}); // Refresh the filtered list
               },
               icon: Icon(Icons.search),
               label: Text('Search'),
@@ -98,7 +113,6 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
               ),
             ),
             SizedBox(height: 20),
-            // Display list of tutors
             Expanded(
               child: ListView.builder(
                 itemCount: _filteredTutors().length,
@@ -111,17 +125,36 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                       leading: CircleAvatar(
                         backgroundColor: Colors.blue,
                         child: Text(
-                          tutor['name'][0],
+                          (tutor['name'] ?? 'N/A')[0], // Fallback if name is null
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      title: Text(tutor['name']),
+                      title: Text(tutor['name'] ?? 'Name not available'),
                       subtitle: Text(
-                        'Subjects: ${tutor['subject']}\nLocation: ${tutor['location']}\nRating: 4.5 ⭐',
+                        'Subjects: ${tutor['subject'] ?? 'N/A'}\n'
+                            'Location: ${tutor['location'] ?? 'N/A'}\n'
+                            'Rating: 4.5 ⭐',
                       ),
                       trailing: Icon(Icons.arrow_forward_ios),
-                      onTap: () {
-                        // Navigate to tutor details page (to be implemented)
+                      onTap: () async {
+                        User? currentUser = FirebaseAuth.instance.currentUser;
+                        if (currentUser != null && studentName != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TutorBatchSelectionPage(
+                                tutorUid: tutor['uid'] ?? '',
+                                tutorName: tutor['name'] ?? 'Name not available',
+                                studentUid: currentUser.uid,
+                                studentName: studentName!, // Pass the student name
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('User not logged in or name not found.')),
+                          );
+                        }
                       },
                     ),
                   );

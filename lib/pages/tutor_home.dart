@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'tutor_slot_page.dart'; // Make sure this is the correct import path
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'tutor_request.dart';
 class TutorHomePage extends StatefulWidget {
   @override
   _TutorHomePageState createState() => _TutorHomePageState();
@@ -231,6 +231,12 @@ class _TutorHomePageState extends State<TutorHomePage> {
       // Navigate to Sessions
         break;
       case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RequestPage (tutorId: tutorUid ?? ''),
+          ),
+        );
       // Navigate to Requests
         break;
       case 2:
