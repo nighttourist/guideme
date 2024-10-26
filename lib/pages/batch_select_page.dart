@@ -4,13 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Batch {
   final String batchName;
   final String time;
+  final List<String> days;
 
-  Batch({required this.batchName, required this.time});
+  Batch({required this.batchName, required this.time, required this.days});
 
   Map<String, dynamic> toMap() {
     return {
       'batchName': batchName,
       'time': time,
+      'days': days,
     };
   }
 
@@ -18,15 +20,28 @@ class Batch {
     return Batch(
       batchName: map['batchName'] ?? '',
       time: map['time'] ?? '',
+      days: List<String>.from(map['days'] ?? []),
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Batch &&
+        other.batchName == batchName &&
+        other.time == time &&
+        other.days.toString() == days.toString();
+  }
+
+  @override
+  int get hashCode => batchName.hashCode ^ time.hashCode ^ days.hashCode;
 }
 
 class TutorBatchSelectionPage extends StatefulWidget {
   final String tutorUid;
   final String tutorName;
   final String studentUid;
-  final String studentName;// Add the studentUid to directly save selections
+  final String studentName;
 
   TutorBatchSelectionPage({
     required this.tutorUid,
@@ -41,14 +56,11 @@ class TutorBatchSelectionPage extends StatefulWidget {
 
 class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
   List<Batch> _availableBatches = [];
-  Batch? _selectedBatch;
+  List<Batch> _selectedBatches = [];
 
   @override
   void initState() {
     super.initState();
-    print('Tutor UID: ${widget.tutorUid}');
-    print('Tutor Name: ${widget.tutorName}');
-    print('StudentID Name: ${widget.studentUid}');
     _fetchAvailableBatches();
   }
 
@@ -73,39 +85,43 @@ class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
   }
 
   Future<void> _confirmBatchSelection() async {
-    if (_selectedBatch != null) {
+    if (_selectedBatches.isNotEmpty) {
       try {
         final studentBatchesRef = FirebaseFirestore.instance
             .collection('users')
             .doc(widget.studentUid)
             .collection('enrollments');
 
-        // Save the student's enrollment under their profile
-        await studentBatchesRef.add({
-          'batchName': _selectedBatch!.batchName,
-          'time': _selectedBatch!.time,
-          'tutorName': widget.tutorName,
-          'tutorUid': widget.tutorUid,
-          'enrollmentDate': Timestamp.now(),
-        });
+        for (var batch in _selectedBatches) {
+          await studentBatchesRef.add({
+            'batchName': batch.batchName,
+            'time': batch.time,
+            'days': batch.days,
+            'tutorName': widget.tutorName,
+            'tutorUid': widget.tutorUid,
+            'enrollmentDate': Timestamp.now(),
+          });
+        }
 
-        // Save the request directly under the tutor's document in the users collection
         final tutorRequestsRef = FirebaseFirestore.instance
             .collection('users')
             .doc(widget.tutorUid)
             .collection('requests');
 
-        await tutorRequestsRef.add({
-          'studentUid': widget.studentUid,
-          'studentName': widget.studentName, // Replace with actual student name if available
-          'batchName': _selectedBatch!.batchName,
-          'time': _selectedBatch!.time,
-          'requestDate': Timestamp.now(),
-          'status':"",
-        });
+        for (var batch in _selectedBatches) {
+          await tutorRequestsRef.add({
+            'studentUid': widget.studentUid,
+            'studentName': widget.studentName,
+            'batchName': batch.batchName,
+            'time': batch.time,
+            'days': batch.days,
+            'requestDate': Timestamp.now(),
+            'status': "",
+          });
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Batch selected and request sent successfully!'),
+          content: Text('Batches selected and requests sent successfully!'),
         ));
         Navigator.pop(context);
       } catch (e) {
@@ -115,11 +131,10 @@ class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Please select a batch'),
+        content: Text('Please select at least one batch'),
       ));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -142,18 +157,19 @@ class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
                 itemCount: _availableBatches.length,
                 itemBuilder: (context, index) {
                   final batch = _availableBatches[index];
-                  return ListTile(
+                  return CheckboxListTile(
                     title: Text(batch.batchName),
-                    subtitle: Text(batch.time),
-                    leading: Radio<Batch>(
-                      value: batch,
-                      groupValue: _selectedBatch,
-                      onChanged: (Batch? value) {
-                        setState(() {
-                          _selectedBatch = value;
-                        });
-                      },
-                    ),
+                    subtitle: Text('${batch.time} - ${batch.days.join(', ')}'), // Display time and list of days
+                    value: _selectedBatches.contains(batch),
+                    onChanged: (bool? isChecked) {
+                      setState(() {
+                        if (isChecked != null && isChecked) {
+                          _selectedBatches.add(batch);
+                        } else {
+                          _selectedBatches.remove(batch);
+                        }
+                      });
+                    },
                   );
                 },
               ),
@@ -161,7 +177,7 @@ class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _confirmBatchSelection,
-              child: Text('Confirm Batch'),
+              child: Text('Confirm Batch(s)'),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 50),
                 padding: EdgeInsets.symmetric(vertical: 16),

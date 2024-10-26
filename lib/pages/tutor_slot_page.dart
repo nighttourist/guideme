@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Batch class definition
 class Batch {
   String batchName;
   String time;
+  List<String> days;
 
-  Batch({required this.batchName, required this.time});
+  Batch({required this.batchName, required this.time, required this.days});
 
-  // Convert Batch to a map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'batchName': batchName,
       'time': time,
+      'days': days,
     };
   }
 
-  // Factory constructor to create a Batch from a map
   factory Batch.fromMap(Map<String, dynamic> map) {
     return Batch(
       batchName: map['batchName'] ?? '',
       time: map['time'] ?? '',
+      days: List<String>.from(map['days'] ?? []),
     );
   }
 }
@@ -37,12 +37,21 @@ class TutorSlotPage extends StatefulWidget {
 class _TutorSlotPageState extends State<TutorSlotPage> {
   final List<Batch> _batches = [];
   final TextEditingController _batchNameController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
+  String _selectedTime = 'Select Time';
+  Map<String, bool> _selectedDays = {
+    'Saturday': false,
+    'Sunday': false,
+    'Monday': false,
+    'Tuesday': false,
+    'Wednesday': false,
+    'Thursday': false,
+    'Friday': false,
+  };
 
   @override
   void initState() {
     super.initState();
-    _fetchSlots(); // Fetch saved slots when the page is initialized
+    _fetchSlots();
   }
 
   @override
@@ -61,30 +70,66 @@ class _TutorSlotPageState extends State<TutorSlotPage> {
                 labelText: 'Batch Name',
               ),
             ),
-            TextField(
-              controller: _timeController,
-              decoration: InputDecoration(
-                labelText: 'Time',
+            SizedBox(height: 10),
+            InkWell(
+              onTap: () => _pickTime(context),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Time',
+                  border: OutlineInputBorder(),
+                ),
+                child: Text(_selectedTime),
               ),
             ),
             SizedBox(height: 10),
+            Expanded(
+              child: ListView(
+                children: _selectedDays.keys.map((day) {
+                  return CheckboxListTile(
+                    title: Text(day),
+                    value: _selectedDays[day],
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _selectedDays[day] = value ?? false;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
             ElevatedButton(
               onPressed: _addBatch,
               child: Text('Add Slot'),
             ),
             SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                itemCount: _batches.length,
-                itemBuilder: (context, index) {
-                  final batch = _batches[index];
-                  return ListTile(
-                    title: Text(batch.batchName),
-                    subtitle: Text(batch.time),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () => _removeBatch(index),
-                    ),
+              child: StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(widget.tutorUid)
+                    .collection('slots')
+                    .snapshots(),
+                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snapshot.data!.docs;
+                  _batches.clear();
+                  _batches.addAll(docs.map((doc) => Batch.fromMap(doc.data() as Map<String, dynamic>)));
+
+                  return ListView.builder(
+                    itemCount: _batches.length,
+                    itemBuilder: (context, index) {
+                      final batch = _batches[index];
+                      return ListTile(
+                        title: Text(batch.batchName),
+                        subtitle: Text('${batch.time} on ${batch.days.join(', ')}'),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => _removeBatch(docs[index].id),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -92,14 +137,9 @@ class _TutorSlotPageState extends State<TutorSlotPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _saveToFirestore,
-        child: Icon(Icons.save),
-      ),
     );
   }
 
-  // Fetch slots from Firestore
   Future<void> _fetchSlots() async {
     try {
       final CollectionReference slotsRef = FirebaseFirestore.instance
@@ -121,55 +161,48 @@ class _TutorSlotPageState extends State<TutorSlotPage> {
     }
   }
 
-  // Add a new batch to the list
+  void _pickTime(BuildContext context) async {
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (pickedTime != null) {
+      setState(() {
+        _selectedTime = pickedTime.format(context);
+      });
+    }
+  }
+
   void _addBatch() {
     final String batchName = _batchNameController.text;
-    final String time = _timeController.text;
+    final String time = _selectedTime;
+    final List<String> selectedDays = _selectedDays.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
 
-    if (batchName.isNotEmpty && time.isNotEmpty) {
-      setState(() {
-        _batches.add(Batch(batchName: batchName, time: time));
-      });
-
-      // Clear the text fields after adding
-      _batchNameController.clear();
-      _timeController.clear();
-    }
-  }
-
-  // Remove a batch from the list
-  void _removeBatch(int index) {
-    setState(() {
-      _batches.removeAt(index);
-    });
-  }
-
-  // Save the list of batches to Firestore
-  Future<void> _saveToFirestore() async {
-    try {
-      final CollectionReference slotsRef = FirebaseFirestore.instance
+    if (batchName.isNotEmpty && time != 'Select Time' && selectedDays.isNotEmpty) {
+      final newBatch = Batch(batchName: batchName, time: time, days: selectedDays);
+      FirebaseFirestore.instance
           .collection('users')
           .doc(widget.tutorUid)
-          .collection('slots');
+          .collection('slots')
+          .add(newBatch.toMap());
 
-      // Clear the previous slots before adding new ones
-      await slotsRef.get().then((snapshot) {
-        for (var doc in snapshot.docs) {
-          doc.reference.delete();
-        }
+      _batchNameController.clear();
+      setState(() {
+        _selectedTime = 'Select Time';
+        _selectedDays.updateAll((key, value) => false);
       });
-
-      for (Batch batch in _batches) {
-        await slotsRef.add(batch.toMap());
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Slots saved successfully'),
-      ));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error saving slots: $e'),
-      ));
     }
+  }
+
+  void _removeBatch(String docId) {
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.tutorUid)
+        .collection('slots')
+        .doc(docId)
+        .delete();
   }
 }

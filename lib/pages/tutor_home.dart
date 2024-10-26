@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'tutor_slot_page.dart'; // Make sure this is the correct import path
 import 'package:firebase_auth/firebase_auth.dart';
 import 'tutor_request.dart';
+import 'studentList.dart';
 class TutorHomePage extends StatefulWidget {
   @override
   _TutorHomePageState createState() => _TutorHomePageState();
@@ -134,9 +135,10 @@ class _TutorHomePageState extends State<TutorHomePage> {
           ListTile(
             leading: Icon(Icons.logout),
             title: Text('Log Out'),
-            onTap: () {
-              // Log out functionality
-            },
+            onTap: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacementNamed(context, '/'); // Redirect to login page after logout
+            }, // Log out functionality
           ),
           ListTile(
             leading: Icon(Icons.settings),
@@ -249,7 +251,12 @@ class _TutorHomePageState extends State<TutorHomePage> {
         );
         break;
       case 3:
-      // Navigate to Students
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentListPage (tutorId: tutorUid ?? ''),
+          ),
+        );// Navigate to Students
         break;
       case 4:
       // Navigate to History

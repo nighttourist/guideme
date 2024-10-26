@@ -24,7 +24,8 @@ class _RequestPageState extends State<RequestPage> {
       final tutorRequestsRef = FirebaseFirestore.instance
           .collection('users')
           .doc(widget.tutorId)
-          .collection('requests');
+          .collection('requests')
+          .where('status', isEqualTo: ''); // Filter for pending requests
 
       QuerySnapshot snapshot = await tutorRequestsRef.get();
       setState(() {
@@ -43,7 +44,7 @@ class _RequestPageState extends State<RequestPage> {
 
   Future<void> _acceptRequest(String requestId) async {
     try {
-      // Handle request acceptance logic here, such as updating the request status.
+      // Update request status to accepted in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.tutorId)
@@ -51,11 +52,53 @@ class _RequestPageState extends State<RequestPage> {
           .doc(requestId)
           .update({'status': 'accepted'});
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Request accepted successfully!'),
-      ));
+      // Fetch updated request document for details
+      DocumentSnapshot requestDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.tutorId)
+          .collection('requests')
+          .doc(requestId)
+          .get();
 
-      // Optionally re-fetch the requests to update the list
+      String studentId = requestDoc['studentUid'];
+      String tutorName = requestDoc['tutorName'];
+      String batchName = requestDoc['batchName'];
+      String time = requestDoc['time'];
+
+      // Fetch the student's details from the users collection
+      DocumentSnapshot studentDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(studentId)
+          .get();
+
+      if (studentDoc.exists) {
+        // Save the full student details in the Students collection under the tutor's document
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.tutorId)
+            .collection('Students')
+            .doc(studentId)
+            .set({
+          'studentId': studentId,
+          'studentName': studentDoc['name'],
+          'email': studentDoc['email'],
+          'grade': studentDoc['grade'],
+          'address': studentDoc['address'],
+          'batchName': batchName,
+          'time': time,
+          // Add any other required fields from studentDoc here
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Request accepted, and student saved in database!'),
+        ));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Student details not found.'),
+        ));
+      }
+
+      // Refresh the requests list to remove accepted request from UI
       _fetchRequests();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -66,7 +109,7 @@ class _RequestPageState extends State<RequestPage> {
 
   Future<void> _rejectRequest(String requestId) async {
     try {
-      // Handle request rejection logic here, such as updating the request status.
+      // Update request status to rejected in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.tutorId)
@@ -78,7 +121,7 @@ class _RequestPageState extends State<RequestPage> {
         content: Text('Request rejected successfully!'),
       ));
 
-      // Optionally re-fetch the requests to update the list
+      // Refresh the requests list to remove rejected request from UI
       _fetchRequests();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -111,7 +154,8 @@ class _RequestPageState extends State<RequestPage> {
                   children: [
                     Text('Batch: ${request['batchName'] ?? 'N/A'}'),
                     Text('Time: ${request['time'] ?? 'N/A'}'),
-                    Text('Date: ${request['requestDate'] != null ? (request['requestDate'] as Timestamp).toDate().toString() : 'N/A'}'),
+                    Text(
+                        'Date: ${request['requestDate'] != null ? (request['requestDate'] as Timestamp).toDate().toString() : 'N/A'}'),
                   ],
                 ),
                 trailing: Row(

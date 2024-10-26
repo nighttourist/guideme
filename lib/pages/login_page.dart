@@ -12,6 +12,33 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  // Check if user is already logged in
+  void _checkLoginStatus() async {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) async {
+      if (user != null) {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          String role = userDoc['role'];
+          if (role == 'student') {
+            Navigator.pushReplacementNamed(context, '/student');
+          } else if (role == 'tutor') {
+            Navigator.pushReplacementNamed(context, '/tutor_home');
+          }
+        }
+      }
+    });
+  }
+
   void _login() async {
     try {
       UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -29,13 +56,10 @@ class _LoginPageState extends State<LoginPage> {
         String role = userDoc['role']; // Get the user's role from Firestore
 
         if (isStudent && role == 'student') {
-          // Navigate to student page
           Navigator.pushReplacementNamed(context, '/student');
         } else if (!isStudent && role == 'tutor') {
-          // Navigate to tutor page
           Navigator.pushReplacementNamed(context, '/tutor_home');
         } else {
-          // Show error message if role mismatch occurs
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Incorrect role selected.'),
@@ -52,7 +76,6 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.message}'),
