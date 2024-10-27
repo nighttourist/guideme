@@ -112,6 +112,7 @@ class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
           await tutorRequestsRef.add({
             'studentUid': widget.studentUid,
             'studentName': widget.studentName,
+            'tutorName': widget.tutorName,
             'batchName': batch.batchName,
             'time': batch.time,
             'days': batch.days,

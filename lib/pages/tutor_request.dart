@@ -61,9 +61,18 @@ class _RequestPageState extends State<RequestPage> {
           .get();
 
       String studentId = requestDoc['studentUid'];
-      String tutorName = requestDoc['tutorName'];
-      String batchName = requestDoc['batchName'];
-      String time = requestDoc['time'];
+      String batchName = requestDoc['batchName'] ?? 'N/A';
+      String time = requestDoc['time'] ?? 'N/A';
+
+      // Fetch the tutor's details (including tutorName) from the users collection
+      DocumentSnapshot tutorDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.tutorId)
+          .get();
+
+      String tutorName = tutorDoc['name'] ?? 'Unknown Tutor';
+      String tutorEmail = tutorDoc['email'] ?? 'N/A';
+      String tutorSubject = tutorDoc['subject'] ?? 'N/A';  // Example additional field
 
       // Fetch the student's details from the users collection
       DocumentSnapshot studentDoc = await FirebaseFirestore.instance
@@ -81,16 +90,29 @@ class _RequestPageState extends State<RequestPage> {
             .set({
           'studentId': studentId,
           'studentName': studentDoc['name'],
+          'tutorName': tutorName,
           'email': studentDoc['email'],
           'grade': studentDoc['grade'],
           'address': studentDoc['address'],
           'batchName': batchName,
           'time': time,
-          // Add any other required fields from studentDoc here
+        });
+
+        // Save tutor details in the student's savedTutor collection
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(studentId)
+            .collection('savedTutors')
+            .doc(widget.tutorId)
+            .set({
+          'tutorId': widget.tutorId,
+          'tutorName': tutorName,
+          'tutorEmail': tutorEmail,
+          'subject': tutorSubject,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Request accepted, and student saved in database!'),
+          content: Text('Request accepted, student and tutor saved!'),
         ));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -106,6 +128,7 @@ class _RequestPageState extends State<RequestPage> {
       ));
     }
   }
+
 
   Future<void> _rejectRequest(String requestId) async {
     try {
