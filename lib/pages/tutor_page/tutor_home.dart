@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'tutor_slot_page.dart'; // Make sure this is the correct import path
 import 'package:firebase_auth/firebase_auth.dart';
 import 'tutor_request.dart';
-import 'studentList.dart';
+import '../student_page/studentList.dart';
+
 class TutorHomePage extends StatefulWidget {
   @override
   _TutorHomePageState createState() => _TutorHomePageState();
@@ -30,7 +31,8 @@ class _TutorHomePageState extends State<TutorHomePage> {
   }
 
   Future<void> _fetchTutorUid() async {
-    User? currentUser = FirebaseAuth.instance.currentUser; // Get the current user
+    User? currentUser =
+        FirebaseAuth.instance.currentUser; // Get the current user
 
     // Check if the current user is logged in
     if (currentUser != null) {
@@ -57,6 +59,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
       print('No user is currently logged in.');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +140,8 @@ class _TutorHomePageState extends State<TutorHomePage> {
             title: Text('Log Out'),
             onTap: () async {
               await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacementNamed(context, '/'); // Redirect to login page after logout
+              Navigator.pushReplacementNamed(
+                  context, '/'); // Redirect to login page after logout
             }, // Log out functionality
           ),
           ListTile(
@@ -189,7 +193,8 @@ class _TutorHomePageState extends State<TutorHomePage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => TutorSlotPage(tutorUid: tutorUid ?? ''), // Pass UID to the slot page
+                    builder: (context) => TutorSlotPage(
+                        tutorUid: tutorUid ?? ''), // Pass UID to the slot page
                   ),
                 );
               },
@@ -230,19 +235,19 @@ class _TutorHomePageState extends State<TutorHomePage> {
   void _navigateToPage(int index) {
     switch (index) {
       case 0:
-      // Navigate to Sessions
+        // Navigate to Sessions
         break;
       case 1:
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RequestPage (tutorId: tutorUid ?? ''),
+            builder: (context) => RequestPage(tutorId: tutorUid ?? ''),
           ),
         );
-      // Navigate to Requests
+        // Navigate to Requests
         break;
       case 2:
-      // Navigate to View & Change Slots
+        // Navigate to View & Change Slots
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -254,18 +259,18 @@ class _TutorHomePageState extends State<TutorHomePage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => StudentListPage (tutorId: tutorUid ?? ''),
+            builder: (context) => StudentListPage(tutorId: tutorUid ?? ''),
           ),
-        );// Navigate to Students
+        ); // Navigate to Students
         break;
       case 4:
-      // Navigate to History
+        // Navigate to History
         break;
       case 5:
-      // Navigate to Notifications
+        // Navigate to Notifications
         break;
       case 6:
-      // Navigate to Profile
+        // Navigate to Profile
         break;
     }
   }
@@ -318,7 +323,8 @@ class _TutorHomePageState extends State<TutorHomePage> {
         return 'Unknown';
     }
   }
-Widget _buildCard({
+
+  Widget _buildCard({
     required int index,
     required Color color,
     required IconData icon,

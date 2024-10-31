@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'batch_select_page.dart';
+import '../other/batch_select_page.dart';
 
 class TutorSearchPage extends StatefulWidget {
   @override
@@ -17,7 +17,10 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
 
   // Fetch tutors from Firestore
   Future<void> _fetchTutors() async {
-    QuerySnapshot snapshot = await _firestore.collection('users').where('role', isEqualTo: 'tutor').get();
+    QuerySnapshot snapshot = await _firestore
+        .collection('users')
+        .where('role', isEqualTo: 'tutor')
+        .get();
     setState(() {
       tutors = snapshot.docs.map((doc) {
         final tutorData = doc.data() as Map<String, dynamic>;
@@ -31,9 +34,11 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
   Future<void> _fetchCurrentUser() async {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(currentUser.uid).get();
       setState(() {
-        studentName = userDoc['name']; // Assuming 'name' field stores the user's name
+        studentName =
+            userDoc['name']; // Assuming 'name' field stores the user's name
       });
     }
   }
@@ -41,8 +46,10 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
   // Filter tutors based on selected subject and location
   List<Map<String, dynamic>> _filteredTutors() {
     return tutors.where((tutor) {
-      final matchesSubject = selectedSubject == null || tutor['subject'] == selectedSubject;
-      final matchesLocation = selectedLocation == null || tutor['location'] == selectedLocation;
+      final matchesSubject =
+          selectedSubject == null || tutor['subject'] == selectedSubject;
+      final matchesLocation =
+          selectedLocation == null || tutor['location'] == selectedLocation;
       return matchesSubject && matchesLocation;
     }).toList();
   }
@@ -72,9 +79,9 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
               ),
               items: ['Math', 'Science', 'English', 'Programming']
                   .map((subject) => DropdownMenuItem(
-                value: subject,
-                child: Text(subject),
-              ))
+                        value: subject,
+                        child: Text(subject),
+                      ))
                   .toList(),
               onChanged: (value) {
                 setState(() {
@@ -90,9 +97,9 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
               ),
               items: ['Dhaka', 'Chittagong', 'Rajshahi', 'Sylhet']
                   .map((location) => DropdownMenuItem(
-                value: location,
-                child: Text(location),
-              ))
+                        value: location,
+                        child: Text(location),
+                      ))
                   .toList(),
               onChanged: (value) {
                 setState(() {
@@ -125,15 +132,16 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                       leading: CircleAvatar(
                         backgroundColor: Colors.blue,
                         child: Text(
-                          (tutor['name'] ?? 'N/A')[0], // Fallback if name is null
+                          (tutor['name'] ??
+                              'N/A')[0], // Fallback if name is null
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
                       title: Text(tutor['name'] ?? 'Name not available'),
                       subtitle: Text(
                         'Subjects: ${tutor['subject'] ?? 'N/A'}\n'
-                            'Location: ${tutor['location'] ?? 'N/A'}\n'
-                            'Rating: 4.5 ⭐',
+                        'Location: ${tutor['location'] ?? 'N/A'}\n'
+                        'Rating: 4.5 ⭐',
                       ),
                       trailing: Icon(Icons.arrow_forward_ios),
                       onTap: () async {
@@ -144,15 +152,19 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                             MaterialPageRoute(
                               builder: (context) => TutorBatchSelectionPage(
                                 tutorUid: tutor['uid'] ?? '',
-                                tutorName: tutor['name'] ?? 'Name not available',
+                                tutorName:
+                                    tutor['name'] ?? 'Name not available',
                                 studentUid: currentUser.uid,
-                                studentName: studentName!, // Pass the student name
+                                studentName:
+                                    studentName!, // Pass the student name
                               ),
                             ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('User not logged in or name not found.')),
+                            SnackBar(
+                                content: Text(
+                                    'User not logged in or name not found.')),
                           );
                         }
                       },

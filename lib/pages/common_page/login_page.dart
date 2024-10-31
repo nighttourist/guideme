@@ -41,7 +41,8 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
@@ -99,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(height: MediaQuery.of(context).size.height * 0.1),
               Center(
                 child: Image.asset(
-                  'assets/tutor_image.png',
+                  'assets/logo.png',
                   height: 150,
                 ),
               ),
@@ -125,7 +126,8 @@ class _LoginPageState extends State<LoginPage> {
                         color: isStudent ? Colors.blue : Colors.grey[300],
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                       child: Text(
                         'Student',
                         style: TextStyle(
@@ -147,7 +149,8 @@ class _LoginPageState extends State<LoginPage> {
                         color: !isStudent ? Colors.blue : Colors.grey[300],
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                       child: Text(
                         'Tutor',
                         style: TextStyle(
@@ -213,7 +216,8 @@ class _LoginPageState extends State<LoginPage> {
                   Text("Don't have an account? "),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(context, '/register'); // Navigate to registration page
+                      Navigator.pushNamed(context,
+                          '/register'); // Navigate to registration page
                     },
                     child: Text(
                       'Register here',
