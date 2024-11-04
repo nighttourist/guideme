@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  badges: ^2.0.3
   firebase_core: ^2.8.0  # Keep the latest version compatible with Flutter
   firebase_auth: ^4.16.0  # Use the compatible version as suggested
   cloud_firestore: ^4.8.0 # If you're using Firestore

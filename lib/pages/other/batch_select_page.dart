@@ -121,8 +121,21 @@ class _TutorBatchSelectionPageState extends State<TutorBatchSelectionPage> {
           });
         }
 
+        // Send a notification to the tutor
+        final tutorNotificationsRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.tutorUid)
+            .collection('notifications');
+
+        await tutorNotificationsRef.add({
+          'title': 'New Enrollment Request',
+          'message': '${widget.studentName} has requested to enroll in ${_selectedBatches.length} batch(es).',
+          'date': Timestamp.now(),
+          'isRead': false, // Add this field to track read/unread status
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Batches selected and requests sent successfully!'),
+          content: Text('Batches selected, requests sent, and notification added successfully!'),
         ));
         Navigator.pop(context);
       } catch (e) {

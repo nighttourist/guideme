@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'tutor_slot_page.dart'; // Make sure this is the correct import path
+import 'tutor_slot_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'tutor_request.dart';
 import '../student_page/studentList.dart';
+import '../tutor_page/notification_page.dart';
+import 'package:badges/badges.dart' as badges;
 
 class TutorHomePage extends StatefulWidget {
   @override
@@ -15,13 +17,13 @@ class _TutorHomePageState extends State<TutorHomePage> {
   String? tutorUid;
 
   final List<Color> cardColors = [
-    Colors.blueAccent,
-    Colors.pinkAccent,
-    Colors.green,
-    Colors.orangeAccent,
-    Colors.purpleAccent,
-    Colors.teal,
-    Colors.redAccent,
+    Colors.blueAccent.shade100,
+    Colors.pinkAccent.shade100,
+    Colors.greenAccent.shade100,
+    Colors.orangeAccent.shade100,
+    Colors.purpleAccent.shade100,
+    Colors.tealAccent.shade100,
+    Colors.redAccent.shade100,
   ];
 
   @override
@@ -30,13 +32,22 @@ class _TutorHomePageState extends State<TutorHomePage> {
     _fetchTutorUid();
   }
 
-  Future<void> _fetchTutorUid() async {
-    User? currentUser =
-        FirebaseAuth.instance.currentUser; // Get the current user
+  Stream<int> _getUnreadNotificationCount() {
+    if (tutorUid == null) return Stream.value(0);
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(tutorUid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
 
-    // Check if the current user is logged in
+  Future<void> _fetchTutorUid() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
     if (currentUser != null) {
-      String currentUserId = currentUser.uid; // Get the UID of the current user
+      String currentUserId = currentUser.uid;
 
       try {
         DocumentSnapshot snapshot = await FirebaseFirestore.instance
@@ -44,10 +55,9 @@ class _TutorHomePageState extends State<TutorHomePage> {
             .doc(currentUserId)
             .get();
 
-        // Check if the document exists and if the user is a tutor
         if (snapshot.exists && snapshot['role'] == 'tutor') {
           setState(() {
-            tutorUid = snapshot.id; // Save the UID of the tutor
+            tutorUid = snapshot.id;
           });
         } else {
           print('User is not a tutor');
@@ -64,12 +74,20 @@ class _TutorHomePageState extends State<TutorHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tutor Home'),
+        title: Text('Tutor Dashboard'),
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {
-              _showNotificationsDialog();
+          StreamBuilder<int>(
+            stream: _getUnreadNotificationCount(),
+            builder: (context, snapshot) {
+              int unreadCount = snapshot.data ?? 0;
+              return IconButton(
+                icon: badges.Badge(
+                  badgeContent: unreadCount > 0 ? Text('$unreadCount') : null,
+                  showBadge: unreadCount > 0,
+                  child: Icon(Icons.notifications),
+                ),
+                onPressed: _showNotificationsDialog,
+              );
             },
           ),
         ],
@@ -77,24 +95,28 @@ class _TutorHomePageState extends State<TutorHomePage> {
       drawer: _buildDrawer(),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Welcome, Tutor!',
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 16.0,
-                  mainAxisSpacing: 16.0,
-                  children: List.generate(7, (index) {
+                child: GridView.builder(
+                  itemCount: 7,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12.0,
+                    mainAxisSpacing: 12.0,
+                  ),
+                  itemBuilder: (context, index) {
                     return _buildCard(
                       index: index,
                       color: _getCardColor(index),
@@ -107,7 +129,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
                         _navigateToPage(index);
                       },
                     );
-                  }),
+                  },
                 ),
               ),
             ],
@@ -122,33 +144,70 @@ class _TutorHomePageState extends State<TutorHomePage> {
     return Drawer(
       child: ListView(
         children: [
-          DrawerHeader(
-            child: Text(
-              'Tutor Menu',
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          UserAccountsDrawerHeader(
             decoration: BoxDecoration(
               color: Colors.blueAccent,
             ),
+            accountName: Text(
+              'Tutor Name', // Replace with actual tutor name if available
+              style: TextStyle(fontSize: 18),
+            ),
+            accountEmail: Text(
+              'tutor@example.com', // Replace with actual tutor email if available
+            ),
           ),
-          ListTile(
-            leading: Icon(Icons.logout),
-            title: Text('Log Out'),
+          _buildDrawerItem(
+            icon: Icons.home,
+            text: 'Home',
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.account_circle,
+            text: 'Profile',
+            onTap: () {
+              // Navigate to Profile
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.request_page,
+            text: 'Requests',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RequestPage(tutorId: tutorUid ?? ''),
+                ),
+              );
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.calendar_today,
+            text: 'Manage Slots',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      TutorSlotPage(tutorUid: tutorUid ?? ''),
+                ),
+              );
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.settings,
+            text: 'Settings',
+            onTap: () {
+              // Navigate to Settings
+            },
+          ),
+          _buildDrawerItem(
+            icon: Icons.logout,
+            text: 'Log Out',
             onTap: () async {
               await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacementNamed(
-                  context, '/'); // Redirect to login page after logout
-            }, // Log out functionality
-          ),
-          ListTile(
-            leading: Icon(Icons.settings),
-            title: Text('Settings'),
-            onTap: () {
-              // Navigate to settings page
+              Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],
@@ -156,87 +215,84 @@ class _TutorHomePageState extends State<TutorHomePage> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      color: Colors.lightBlue[100],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            GestureDetector(
-              onTap: () {
-                // Navigate to Chat History
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.chat, size: 30),
-                  Text('Chat History', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/search');
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.search, size: 30),
-                  Text('Search', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TutorSlotPage(
-                        tutorUid: tutorUid ?? ''), // Pass UID to the slot page
-                  ),
-                );
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calendar_view_day, size: 30),
-                  Text('Manage Slots', style: TextStyle(fontSize: 12)),
-                ],
-              ),
-            ),
-          ],
-        ),
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blueAccent),
+      title: Text(
+        text,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
+      onTap: onTap,
     );
   }
 
-  void _showNotificationsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Notifications'),
-          content: Text('You have no new notifications.'),
-          actions: [
-            TextButton(
-              child: Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      items: [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat_bubble_outline),
+          label: 'Chat',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.search),
+          label: 'Search',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today),
+          label: 'Slots',
+        ),
+      ],
+      onTap: (index) {
+        switch (index) {
+          case 0:
+          // Navigate to Chat History
+            break;
+          case 1:
+            Navigator.pushNamed(context, '/search');
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TutorSlotPage(tutorUid: tutorUid ?? ''),
+              ),
+            );
+            break;
+        }
       },
+      selectedItemColor: Colors.blueAccent,
+      unselectedItemColor: Colors.grey,
     );
   }
+
+  void _showNotificationsDialog() async {
+    // Code to open notifications page or dialog and mark notifications as read
+    // Example:
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(tutorUid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .get()
+        .then((snapshot) {
+      for (var doc in snapshot.docs) {
+        doc.reference.update({'isRead': true});
+      }
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => NotificationPage(tutorId: tutorUid ?? '')),
+    );
+  }
+
 
   void _navigateToPage(int index) {
     switch (index) {
-      case 0:
-        // Navigate to Sessions
-        break;
       case 1:
         Navigator.push(
           context,
@@ -244,10 +300,8 @@ class _TutorHomePageState extends State<TutorHomePage> {
             builder: (context) => RequestPage(tutorId: tutorUid ?? ''),
           ),
         );
-        // Navigate to Requests
         break;
       case 2:
-        // Navigate to View & Change Slots
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -261,25 +315,23 @@ class _TutorHomePageState extends State<TutorHomePage> {
           MaterialPageRoute(
             builder: (context) => StudentListPage(tutorId: tutorUid ?? ''),
           ),
-        ); // Navigate to Students
-        break;
-      case 4:
-        // Navigate to History
+        );
         break;
       case 5:
-        // Navigate to Notifications
-        break;
-      case 6:
-        // Navigate to Profile
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NotificationPage(tutorId: tutorUid ?? ''),
+          ),
+        );
         break;
     }
   }
 
   Color _getCardColor(int index) {
-    if (selectedCardIndex == index) {
-      return Colors.blueGrey;
-    }
-    return cardColors[index % cardColors.length];
+    return selectedCardIndex == index
+        ? Colors.blueGrey.shade300
+        : cardColors[index % cardColors.length];
   }
 
   IconData _getCardIcon(int index) {
@@ -289,7 +341,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
       case 1:
         return Icons.request_page;
       case 2:
-        return Icons.calendar_view_day;
+        return Icons.calendar_today;
       case 3:
         return Icons.person;
       case 4:
@@ -333,31 +385,35 @@ class _TutorHomePageState extends State<TutorHomePage> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              blurRadius: 5,
-              offset: Offset(2, 2),
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.white),
-            const SizedBox(height: 10),
+            Icon(
+              icon,
+              size: 40,
+              color: Colors.white,
+            ),
+            const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
