@@ -6,6 +6,7 @@ import 'tutor_request.dart';
 import '../student_page/studentList.dart';
 import '../tutor_page/notification_page.dart';
 import 'package:badges/badges.dart' as badges;
+import '../other/settings.dart';
 
 class TutorHomePage extends StatefulWidget {
   @override
@@ -199,7 +200,12 @@ class _TutorHomePageState extends State<TutorHomePage> {
             icon: Icons.settings,
             text: 'Settings',
             onTap: () {
-              // Navigate to Settings
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsPage(),
+                ),
+              );
             },
           ),
           _buildDrawerItem(
