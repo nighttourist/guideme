@@ -45,21 +45,70 @@ class _StudentEnrollmentPageState extends State<StudentEnrollmentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Enrollments for Student ${widget.studentId}'),
+        title: Text('Student Enrollments'),
+        backgroundColor: Colors.teal,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: _enrollments.isEmpty
-            ? Center(child: Text('No enrollments found'))
+            ? Center(
+          child: Text(
+            'No enrollments found',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[600],
+            ),
+          ),
+        )
             : ListView.builder(
           itemCount: _enrollments.length,
           itemBuilder: (context, index) {
             final enrollment = _enrollments[index];
+            final batchName = enrollment['batchName'] ?? 'N/A';
+            final enrollmentDate = enrollment['date'] ?? 'N/A';
+
             return Card(
-              margin: EdgeInsets.symmetric(vertical: 8),
-              child: ListTile(
-                title: Text('Batch Name: ${enrollment['batchName'] ?? 'N/A'}'),
-                subtitle: Text('Enrollment Date: ${enrollment['date'] ?? 'N/A'}'), // Example field
+              elevation: 4,
+              margin: EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      batchName,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Enrollment Date: $enrollmentDate',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'ID: ${enrollment['id']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

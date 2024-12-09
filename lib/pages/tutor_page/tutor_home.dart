@@ -9,6 +9,7 @@ import 'notification_page.dart';
 import '../other/settings.dart';
 import 'tutor_profile_page.dart';
 import '../student_page/studentList.dart';
+import '../student_page/StudentSearch.dart';
 
 class TutorHomePage extends StatefulWidget {
   @override
@@ -295,7 +296,12 @@ class _TutorHomePageState extends State<TutorHomePage> {
             break;
 
           case 1:
-            Navigator.pushNamed(context, '/search');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StudentSearchPage(tutorId: tutorUid ?? ''),
+              ),
+            );
             break;
           case 2:
             Navigator.push(

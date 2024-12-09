@@ -59,48 +59,19 @@ class _TutorSlotPageState extends State<TutorSlotPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Manage Slots'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _fetchSlots,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _batchNameController,
-              decoration: InputDecoration(
-                labelText: 'Batch Name',
-              ),
-            ),
-            SizedBox(height: 10),
-            InkWell(
-              onTap: () => _pickTime(context),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Time',
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(_selectedTime),
-              ),
-            ),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView(
-                children: _selectedDays.keys.map((day) {
-                  return CheckboxListTile(
-                    title: Text(day),
-                    value: _selectedDays[day],
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _selectedDays[day] = value ?? false;
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: _addBatch,
-              child: Text('Add Slot'),
-            ),
+            _buildInputCard(),
             SizedBox(height: 20),
             Expanded(
               child: StreamBuilder(
@@ -121,20 +92,90 @@ class _TutorSlotPageState extends State<TutorSlotPage> {
                     itemCount: _batches.length,
                     itemBuilder: (context, index) {
                       final batch = _batches[index];
-                      return ListTile(
-                        title: Text(batch.batchName),
-                        subtitle: Text('${batch.time} on ${batch.days.join(', ')}'),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () => _removeBatch(docs[index].id),
-                        ),
-                      );
+                      return _buildSlotCard(batch, docs[index].id);
                     },
                   );
                 },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _batchNameController,
+              decoration: InputDecoration(
+                labelText: 'Batch Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 10),
+            InkWell(
+              onTap: () => _pickTime(context),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Time',
+                  border: OutlineInputBorder(),
+                ),
+                child: Text(_selectedTime),
+              ),
+            ),
+            SizedBox(height: 10),
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 4.0,
+              children: _selectedDays.keys.map((day) {
+                return FilterChip(
+                  label: Text(day),
+                  selected: _selectedDays[day]!,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _selectedDays[day] = selected;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: Icon(Icons.add),
+              label: Text('Add Slot'),
+              onPressed: _addBatch,
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotCard(Batch batch, String docId) {
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      child: ListTile(
+        contentPadding: EdgeInsets.all(16),
+        title: Text(batch.batchName, style: TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('${batch.time} on ${batch.days.join(', ')}'),
+        trailing: IconButton(
+          icon: Icon(Icons.delete, color: Colors.red),
+          onPressed: () => _removeBatch(docId),
         ),
       ),
     );
@@ -194,6 +235,14 @@ class _TutorSlotPageState extends State<TutorSlotPage> {
         _selectedTime = 'Select Time';
         _selectedDays.updateAll((key, value) => false);
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Slot added successfully!'),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Please complete all fields.'),
+      ));
     }
   }
 

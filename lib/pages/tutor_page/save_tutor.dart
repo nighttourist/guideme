@@ -9,6 +9,7 @@ class SavedTutorsPage extends StatefulWidget {
 
 class _SavedTutorsPageState extends State<SavedTutorsPage> {
   final User? user = FirebaseAuth.instance.currentUser;
+  bool _isLoading = false;
   List<Map<String, dynamic>> _savedTutors = [];
 
   @override
@@ -19,6 +20,10 @@ class _SavedTutorsPageState extends State<SavedTutorsPage> {
 
   Future<void> _fetchSavedTutors() async {
     if (user == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final savedTutorsSnapshot = await FirebaseFirestore.instance
@@ -38,6 +43,10 @@ class _SavedTutorsPageState extends State<SavedTutorsPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error fetching saved tutors: $e'),
       ));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -56,8 +65,7 @@ class _SavedTutorsPageState extends State<SavedTutorsPage> {
         content: Text('Tutor removed from saved list!'),
       ));
 
-      // Refresh the saved tutors list
-      _fetchSavedTutors();
+      _fetchSavedTutors(); // Refresh the saved tutors list
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error deleting tutor: $e'),
@@ -70,38 +78,58 @@ class _SavedTutorsPageState extends State<SavedTutorsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Saved Tutors'),
+        backgroundColor: Colors.teal,
       ),
-      body: Padding(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _savedTutors.isEmpty
+          ? Center(
+        child: Text(
+          'No saved tutors yet!',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[600],
+          ),
+        ),
+      )
+          : ListView.builder(
         padding: const EdgeInsets.all(8.0),
-        child: _savedTutors.isEmpty
-            ? Center(child: Text('No saved tutors'))
-            : ListView.builder(
-          itemCount: _savedTutors.length,
-          itemBuilder: (context, index) {
-            final tutor = _savedTutors[index];
-            return Card(
-              elevation: 3,
-              margin: EdgeInsets.symmetric(vertical: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
-                  child: Text(
-                    tutor['tutorName'][0].toUpperCase(),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-                title: Text(tutor['tutorName'] ?? 'N/A'),
-                subtitle: Text('Batch: ${tutor['batchName'] ?? 'N/A'}\nTime: ${tutor['time'] ?? 'N/A'}'),
-                trailing: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    _showDeleteConfirmationDialog(context, tutor['id']);
-                  },
+        itemCount: _savedTutors.length,
+        itemBuilder: (context, index) {
+          final tutor = _savedTutors[index];
+          final tutorName = tutor['tutorName'] ?? 'Unnamed Tutor';
+          final batchName = tutor['batchName'] ?? 'N/A';
+          final time = tutor['time'] ?? 'N/A';
+
+          return Card(
+            elevation: 3,
+            margin: EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.blueAccent,
+                child: Text(
+                  tutorName[0].toUpperCase(),
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
-            );
-          },
-        ),
+              title: Text(tutorName),
+              subtitle: Text(
+                'Batch: $batchName\nTime: $time',
+                style: TextStyle(fontSize: 14),
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: () {
+                  _showDeleteConfirmationDialog(context, tutor['id']);
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -112,18 +140,19 @@ class _SavedTutorsPageState extends State<SavedTutorsPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Remove Saved Tutor"),
-          content: Text("Are you sure you want to remove this tutor from your saved list?"),
+          content: Text(
+              "Are you sure you want to remove this tutor from your saved list?"),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog without deleting
+                Navigator.of(context).pop();
               },
               child: Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
                 _deleteTutor(tutorId);
-                Navigator.of(context).pop(); // Close the dialog after deleting
+                Navigator.of(context).pop();
               },
               child: Text("Delete"),
             ),
