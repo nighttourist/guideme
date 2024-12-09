@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'student_enrollment_page.dart'; // Import the new page
+import 'student_enrollment_page.dart';
+import '../tutor_page/chat_page.dart';
 
 class StudentListPage extends StatefulWidget {
   final String tutorId;
@@ -20,6 +21,7 @@ class _StudentListPageState extends State<StudentListPage> {
     _fetchStudents();
   }
 
+  // Fetch students for the tutor from Firestore
   Future<void> _fetchStudents() async {
     try {
       final studentsRef = FirebaseFirestore.instance
@@ -42,7 +44,7 @@ class _StudentListPageState extends State<StudentListPage> {
         }
       }
 
-      // Convert the map back to a list
+      // Convert the map back to a list and update the state
       setState(() {
         _students = uniqueStudentsMap.values.toList();
       });
@@ -53,11 +55,25 @@ class _StudentListPageState extends State<StudentListPage> {
     }
   }
 
+  // Navigate to the Student Enrollment Details Page
   void _navigateToEnrollmentDetails(String studentId) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StudentEnrollmentPage (studentId: studentId),
+        builder: (context) => StudentEnrollmentPage(studentId: studentId),
+      ),
+    );
+  }
+
+  // Navigate to the Chat Page for a specific student
+  void _navigateToChat(String studentId, String studentName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TutorChatPage(
+          studentId: studentId,
+          studentName: studentName, // Pass the student name to the chat page
+        ),
       ),
     );
   }
@@ -76,19 +92,32 @@ class _StudentListPageState extends State<StudentListPage> {
           itemCount: _students.length,
           itemBuilder: (context, index) {
             final student = _students[index];
+            final studentId = student['studentId'];
+            final studentName = student['studentName'] ?? 'N/A';
+            final studentEmail = student['email'] ?? 'N/A';
+            final studentGrade = student['grade'] ?? 'N/A';
+            final studentAddress = student['address'] ?? 'N/A';
+
             return Card(
               margin: EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
-                title: Text('Student Name: ${student['studentName'] ?? 'N/A'}'),
+                title: Text('Student Name: $studentName'),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Email: ${student['email'] ?? 'N/A'}'),
-                    Text('Grade: ${student['grade'] ?? 'N/A'}'),
-                    Text('Address: ${student['address'] ?? 'N/A'}'),
+                    Text('Email: $studentEmail'),
+                    Text('Grade: $studentGrade'),
+                    Text('Address: $studentAddress'),
                   ],
                 ),
-                onTap: () => _navigateToEnrollmentDetails(student['studentId']),
+                trailing: IconButton(
+                  icon: Icon(Icons.chat),
+                  onPressed: () => _navigateToChat(
+                    studentId,
+                    studentName, // Correctly pass studentName
+                  ),
+                ),
+                onTap: () => _navigateToEnrollmentDetails(studentId),
               ),
             );
           },

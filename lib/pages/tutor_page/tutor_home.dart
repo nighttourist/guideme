@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'tutor_slot_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'tutor_request.dart';
-import '../student_page/studentList.dart';
-import '../tutor_page/notification_page.dart';
 import 'package:badges/badges.dart' as badges;
+import 'tutor_slot_page.dart';
+import 'chat_page.dart';
+import 'tutor_request.dart';
+import 'notification_page.dart';
 import '../other/settings.dart';
+import 'tutor_profile_page.dart';
+import '../student_page/studentList.dart';
 
 class TutorHomePage extends StatefulWidget {
   @override
@@ -16,6 +18,7 @@ class TutorHomePage extends StatefulWidget {
 class _TutorHomePageState extends State<TutorHomePage> {
   int? selectedCardIndex;
   String? tutorUid;
+  String? studentUid;
 
   final List<Color> cardColors = [
     Colors.blueAccent.shade100,
@@ -168,7 +171,12 @@ class _TutorHomePageState extends State<TutorHomePage> {
             icon: Icons.account_circle,
             text: 'Profile',
             onTap: () {
-              // Navigate to Profile
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TutorProfilePage(tutorId: tutorUid ?? ''),
+                ),
+              );
             },
           ),
           _buildDrawerItem(
@@ -190,8 +198,7 @@ class _TutorHomePageState extends State<TutorHomePage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      TutorSlotPage(tutorUid: tutorUid ?? ''),
+                  builder: (context) => TutorSlotPage(tutorUid: tutorUid ?? ''),
                 ),
               );
             },
@@ -255,8 +262,38 @@ class _TutorHomePageState extends State<TutorHomePage> {
       onTap: (index) {
         switch (index) {
           case 0:
-          // Navigate to Chat History
+            if (tutorUid != null && studentUid != null) {
+              // Fetch the student name from Firestore
+              FirebaseFirestore.instance
+                  .collection('students') // Make sure this collection contains the student data
+                  .doc(studentUid) // Get the document of the student using studentUid
+                  .get()
+                  .then((DocumentSnapshot docSnapshot) {
+                if (docSnapshot.exists) {
+                  // Extract the student's name from the document
+                  String studentName = docSnapshot['name']; // Assuming the field name is 'name'
+
+                  // Navigate to the TutorChatPage with the actual student name
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TutorChatPage(
+                        studentId: studentUid ?? '',  // Pass studentId correctly
+                        studentName: studentName,     // Pass the studentName fetched from Firestore
+                      ),
+                    ),
+                  );
+                } else {
+                  // Handle the case where the student document doesn't exist
+                  print('Student not found');
+                }
+              }).catchError((e) {
+                // Handle any errors that occur while fetching the data
+                print('Error fetching student data: $e');
+              });
+            }
             break;
+
           case 1:
             Navigator.pushNamed(context, '/search');
             break;
@@ -276,26 +313,25 @@ class _TutorHomePageState extends State<TutorHomePage> {
   }
 
   void _showNotificationsDialog() async {
-    // Code to open notifications page or dialog and mark notifications as read
-    // Example:
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(tutorUid)
-        .collection('notifications')
-        .where('isRead', isEqualTo: false)
-        .get()
-        .then((snapshot) {
-      for (var doc in snapshot.docs) {
-        doc.reference.update({'isRead': true});
-      }
-    });
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => NotificationPage(tutorId: tutorUid ?? '')),
-    );
+    if (tutorUid != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(tutorUid)
+          .collection('notifications')
+          .where('isRead', isEqualTo: false)
+          .get()
+          .then((snapshot) {
+        for (var doc in snapshot.docs) {
+          doc.reference.update({'isRead': true});
+        }
+      });
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => NotificationPage(tutorId: tutorUid ?? '')),
+      );
+    }
   }
-
 
   void _navigateToPage(int index) {
     switch (index) {
@@ -328,6 +364,14 @@ class _TutorHomePageState extends State<TutorHomePage> {
           context,
           MaterialPageRoute(
             builder: (context) => NotificationPage(tutorId: tutorUid ?? ''),
+          ),
+        );
+        break;
+      case 6:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TutorProfilePage(tutorId: tutorUid ?? ''),
           ),
         );
         break;

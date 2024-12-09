@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../tutor_page/tutor_list.dart';
 
 class StudentHomePage extends StatelessWidget {
   @override
@@ -172,7 +173,12 @@ class StudentHomePage extends StatelessWidget {
                 ),
                 child: InkWell(
                   onTap: () {
-                    Navigator.pushNamed(context, '/chat');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TutorListPage(), // Page that displays saved tutors
+                      ),
+                    );
                   },
                   child: Padding(
                     padding: EdgeInsets.all(16.0),

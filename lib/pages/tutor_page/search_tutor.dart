@@ -10,8 +10,8 @@ class TutorSearchPage extends StatefulWidget {
 
 class _TutorSearchPageState extends State<TutorSearchPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String? selectedAddress;
   String? selectedSubject;
-  String? selectedLocation;
   List<Map<String, dynamic>> tutors = [];
   String? studentName; // To store the current user's name
 
@@ -35,22 +35,22 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(currentUser.uid).get();
+      await _firestore.collection('users').doc(currentUser.uid).get();
       setState(() {
         studentName =
-            userDoc['name']; // Assuming 'name' field stores the user's name
+        userDoc['name']; // Assuming 'name' field stores the user's name
       });
     }
   }
 
-  // Filter tutors based on selected subject and location
+  // Filter tutors based on selected address and subject
   List<Map<String, dynamic>> _filteredTutors() {
     return tutors.where((tutor) {
+      final matchesAddress =
+          selectedAddress == null || tutor['location'] == selectedAddress;
       final matchesSubject =
           selectedSubject == null || tutor['subject'] == selectedSubject;
-      final matchesLocation =
-          selectedLocation == null || tutor['location'] == selectedLocation;
-      return matchesSubject && matchesLocation;
+      return matchesAddress && matchesSubject;
     }).toList();
   }
 
@@ -58,54 +58,96 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
   void initState() {
     super.initState();
     _fetchTutors();
-    _fetchCurrentUser(); // Fetch current user's name
+    _fetchCurrentUser();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Search for Tutors'),
+        title: Text('Advanced Tutor Search'),
+        backgroundColor: Colors.teal,
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Select Subject',
-                border: OutlineInputBorder(),
+            Text(
+              'Search Tutors',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.teal,
               ),
-              items: ['Math', 'Science', 'English', 'Programming']
-                  .map((subject) => DropdownMenuItem(
-                        value: subject,
-                        child: Text(subject),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedSubject = value;
-                });
-              },
             ),
             SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Select Location',
-                border: OutlineInputBorder(),
-              ),
-              items: ['Dhaka', 'Chittagong', 'Rajshahi', 'Sylhet']
-                  .map((location) => DropdownMenuItem(
-                        value: location,
-                        child: Text(location),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedLocation = value;
-                });
-              },
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Select Address',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                    items: [
+                      'Dhaka',
+                      'Chittagong',
+                      'Khulna',
+                      'Rajshahi',
+                      'Sylhet',
+                      'Barisal',
+                      'Rangpur',
+                      'Mymensingh'
+                    ]
+                        .map((location) => DropdownMenuItem(
+                      value: location,
+                      child: Text(location),
+                    ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedAddress = value;
+                      });
+                    },
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Select Subject',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                    ),
+                    items: [
+                      'Physics',
+                      'Chemistry',
+                      'Math',
+                      'Linux',
+                      'English',
+                      'Programming',
+                      'History',
+                      'Biology'
+                    ]
+                        .map((subject) => DropdownMenuItem(
+                      value: subject,
+                      child: Text(subject),
+                    ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedSubject = value;
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 20),
             ElevatedButton.icon(
@@ -116,6 +158,9 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
               label: Text('Search'),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                textStyle: TextStyle(fontSize: 16),
                 minimumSize: Size(double.infinity, 50),
               ),
             ),
@@ -128,20 +173,26 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                   return Card(
                     elevation: 3,
                     margin: EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.teal,
                         child: Text(
-                          (tutor['name'] ??
-                              'N/A')[0], // Fallback if name is null
+                          (tutor['name'] ?? 'N/A')[0].toUpperCase(),
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
-                      title: Text(tutor['name'] ?? 'Name not available'),
+                      title: Text(
+                        tutor['name'] ?? 'Name not available',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Text(
                         'Subjects: ${tutor['subject'] ?? 'N/A'}\n'
-                        'Location: ${tutor['location'] ?? 'N/A'}\n'
-                        'Rating: 4.5 ⭐',
+                            'Location: ${tutor['location'] ?? 'N/A'}\n'
+                            'Rating: 4.5 ⭐',
+                        style: TextStyle(fontSize: 12),
                       ),
                       trailing: Icon(Icons.arrow_forward_ios),
                       onTap: () async {
@@ -153,10 +204,10 @@ class _TutorSearchPageState extends State<TutorSearchPage> {
                               builder: (context) => TutorBatchSelectionPage(
                                 tutorUid: tutor['uid'] ?? '',
                                 tutorName:
-                                    tutor['name'] ?? 'Name not available',
+                                tutor['name'] ?? 'Name not available',
                                 studentUid: currentUser.uid,
                                 studentName:
-                                    studentName!, // Pass the student name
+                                studentName!, // Pass the student name
                               ),
                             ),
                           );

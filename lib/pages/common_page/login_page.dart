@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
   void _login() async {
     try {
       UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
@@ -76,6 +76,38 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _forgotPassword() async {
+    if (emailController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter your email address.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: emailController.text,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Password reset email sent.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -127,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(25),
                       ),
                       padding:
-                          EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                      EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                       child: Text(
                         'Student',
                         style: TextStyle(
@@ -150,7 +182,7 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(25),
                       ),
                       padding:
-                          EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                      EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                       child: Text(
                         'Tutor',
                         style: TextStyle(
@@ -188,9 +220,7 @@ class _LoginPageState extends State<LoginPage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    // Forgot password functionality
-                  },
+                  onPressed: _forgotPassword,
                   child: Text('Forgot Password?'),
                 ),
               ),
@@ -216,8 +246,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text("Don't have an account? "),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(context,
-                          '/register'); // Navigate to registration page
+                      Navigator.pushNamed(context, '/register');
                     },
                     child: Text(
                       'Register here',
